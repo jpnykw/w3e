@@ -1,0 +1,12 @@
+{
+  "name": "w3e",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc --out ./dist/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
