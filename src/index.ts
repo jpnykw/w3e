@@ -48,7 +48,7 @@
     w3e.create_polygon(
         [{
             attribute: 'position',
-            dimension: 3, // it means Vec3(X,Y,Z)
+            dimension: 3, // (X,Y,Z)
             vertex: [
                 0.0, 0.5, 0.0,
                 0.5, 0.0, 0.0,
@@ -57,24 +57,26 @@
         },
         {
             attribute: 'color',
-            dimension: 4, // it means Vec4(R,G,B,A)
+            dimension: 4, // (R,G,B,A)
             vertex: [
                 0.0, 1.0, 0.0, 1.0,
                 1.0, 0.0, 0.0, 1.0,
                 0.0, 0.0, 1.0, 1.0
             ],
         }],
-        [
-            [1.5, -1.0, 0.0],
-            [-1.5, -1.0, 0.0],
-            [0.0, 0.5, 0.0],
-        ]
+        {
+            positions: [
+                [1.5, -1.0, 0.0],
+                [-1.5, -1.0, 0.0],
+                [0.0, 0.5, 0.0],
+            ]
+        }
     );
 
     w3e.create_polygon(
         [{
             attribute: 'position',
-            dimension: 3, // it means Vec3(X,Y,Z)
+            dimension: 3, // (X,Y,Z)
             vertex: [
                 0.0, 0.5, 0.0,
                 0.5, 0.0, 0.0,
@@ -83,20 +85,28 @@
         },
         {
             attribute: 'color',
-            dimension: 4, // it means Vec4(R,G,B,A)
+            dimension: 4, // (R,G,B,A)
             vertex: [
                 1.0, 1.0, 0.0, 1.0,
                 1.0, 0.0, 1.0, 1.0,
                 1.0, 1.0, 0.0, 1.0
             ],
         }],
-        [
-            [1.0, 0.0, -1.0],
-            [-2.0, 0.0, 1.0],
-            [2.0, -1.0, 1.0],
-        ]
+        {
+            positions: [
+                [1.0, 0.0, -1.0],
+                [-2.0, 0.0, 1.0],
+                [2.0, -1.0, 1.0],
+            ],
+            rotate: [0, 1, 0],
+        }
     );
 
-    // 描画命令の発行とレンダリング
-    w3e.render();
+    const loop = () => {
+        // 描画命令の発行とレンダリング
+        w3e.render();
+        requestAnimationFrame(loop);
+    };
+
+    loop();
 })();

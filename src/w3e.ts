@@ -19,12 +19,22 @@ interface W3EPolygon {
     dimension: number;
 }
 
+interface W3EPolygonProps {
+    positions: number[][];
+    rotate?: number[];
+}
+
+interface W3EStatus {
+    tick: number;
+}
+
 class W3E {
     private _canvas: HTMLCanvasElement;
     private _gl: WebGLRenderingContext;
     private _program: WebGLProgram;
     private _matrix: W3EMatrix;
-    private _polygon: { props: W3EPolygon[], positions: number[][] }[];
+    private _polygon: ({props: W3EPolygon[]} & W3EPolygonProps)[];
+    private _status: W3EStatus;
 
     constructor(props: W3EProps) {
         this._initialize(props);
@@ -59,6 +69,11 @@ class W3E {
             vertex_shader: this._create_shader('vertex', vertex_shader),
             fragment_shader: this._create_shader('fragment', fragment_shader),
         });
+
+        // 内部ステータスの初期化
+        this._status = {
+            tick: 0,
+        };
     }
 
     private _create_shader(type, program) {       
@@ -111,9 +126,9 @@ class W3E {
     }
 
     // 任意のポリゴンを作成する独自関数
-    public create_polygon(props: W3EPolygon[], positions: number[][]) {
+    public create_polygon(props: W3EPolygon[], { positions, rotate }: W3EPolygonProps) {
         // オブジェクトを実際に追加するのは後で行うので一旦内部的に情報だけ格納する
-        this._polygon.push({ props, positions });
+        this._polygon.push({ props, positions, rotate });
     }
 
     public append(parent: Node) {
@@ -126,7 +141,7 @@ class W3E {
         this._matrix.raw.perspective(90, this._canvas.width / this._canvas.height, 0.1, 100, this._matrix.projection);
 
         // オブジェクトを実際に追加するのは pipeline 内部で行う
-        for (const { props, positions } of this._polygon) {
+        for (const { props, positions, rotate} of this._polygon) {
             for (const { attribute, vertex, dimension } of props) {
                 const location = this._gl.getAttribLocation(this._program, attribute);
                 const vbo = this._create_vbo(vertex);
@@ -142,8 +157,13 @@ class W3E {
             for (const [index, [x, y, z]] of Object.entries(positions)) {
                 // ２つ目以降のオブジェクトを描画する際には行列を初期化
                 if (Number(index) > 0) this._matrix.raw.identity(this._matrix.model);
+
                 // モデルを移動させるためのモデル座標変換行列
                 this._matrix.raw.translate(this._matrix.model, [x, y, z], this._matrix.model);
+
+                // モデルが固有のアニメーションを持つ場合はここで行列計算を行う
+                if (rotate) this._matrix.raw.rotate(this._matrix.model, this._status.tick * Math.PI / 180, rotate, this._matrix.model);
+
                 // model 変換, view 変換, projection 変換を行う
                 this._matrix.raw.multiply(tmpMatrix, this._matrix.model, this._matrix.mvp);
                 this._gl.uniformMatrix4fv(uniLocation, false, this._matrix.mvp);
@@ -153,6 +173,10 @@ class W3E {
     }
 
     public render() {
+        // 内部ステータス更新
+        this._status.tick = this._status.tick + 1;
+
+        // 画面リセット
         this._gl.clearColor(0.0, 0.0, 0.0, 1.0);
         this._gl.clearDepth(1.0);
         this._gl.clear(this._gl.COLOR_BUFFER_BIT | this._gl.DEPTH_BUFFER_BIT);
