@@ -24,18 +24,24 @@ class W3E {
     private _gl: WebGLRenderingContext;
     private _program: WebGLProgram;
     private _matrix: W3EMatrix;
+    private _polygon: { props: W3EPolygon[], positions: number[][] }[];
 
     constructor(props: W3EProps) {
+        this._initialize(props);
+    }
+
+    private _initialize({ width, height, vertex_shader, fragment_shader }: Partial<W3EProps>) {
+        // 行列の初期化
         const raw = new matIV();
         const model = raw.identity(raw.create());
         const view = raw.identity(raw.create());
         const projection = raw.identity(raw.create());
         const mvp = raw.identity(raw.create());
         this._matrix = { raw, model, view, projection, mvp };
-        this._initialize(props);
-    }
 
-    private _initialize({ width, height, vertex_shader, fragment_shader }: Partial<W3EProps>) {
+        // 描画するオブジェクト系の初期化
+        this._polygon = [];
+
         // canvas を作成
         this._canvas = document.createElement('canvas');
         if (width) this._canvas.width = width;
@@ -105,14 +111,9 @@ class W3E {
     }
 
     // 任意のポリゴンを作成する独自関数
-    public create_polygon(props: W3EPolygon[]) {
-        for (const { attribute, vertex, dimension } of props) {
-            const location = this._gl.getAttribLocation(this._program, attribute);
-            const vbo = this._create_vbo(vertex);
-            this._gl.bindBuffer(this._gl.ARRAY_BUFFER, vbo);
-            this._gl.enableVertexAttribArray(location);
-            this._gl.vertexAttribPointer(location, dimension, this._gl.FLOAT, false, 0, 0);
-        }
+    public create_polygon(props: W3EPolygon[], positions: number[][]) {
+        // オブジェクトを実際に追加するのは後で行うので一旦内部的に情報だけ格納する
+        this._polygon.push({ props, positions });
     }
 
     public append(parent: Node) {
@@ -120,31 +121,34 @@ class W3E {
     }
 
     private _render_pipeline() {
-        const uniLocation = this._gl.getUniformLocation(this._program, 'mvpMatrix');
-        const tmpMatrix = this._matrix.raw.identity(this._matrix.raw.create());
-
         // 座標変換行列の生成と通知
         this._matrix.raw.lookAt([0.0, 0.0, 3.0], [0, 0, 0], [0, 1, 0], this._matrix.view);
         this._matrix.raw.perspective(90, this._canvas.width / this._canvas.height, 0.1, 100, this._matrix.projection);
-        this._matrix.raw.multiply(this._matrix.projection, this._matrix.view, tmpMatrix);
 
-        const pos = [
-            [1.5, -1.0, 0.0],
-            [-1.5, -1.0, 0.0],
-            [0.0, 0.5, 0.0],
-        ];
+        // オブジェクトを実際に追加するのは pipeline 内部で行う
+        for (const { props, positions } of this._polygon) {
+            for (const { attribute, vertex, dimension } of props) {
+                const location = this._gl.getAttribLocation(this._program, attribute);
+                const vbo = this._create_vbo(vertex);
+                this._gl.bindBuffer(this._gl.ARRAY_BUFFER, vbo);
+                this._gl.enableVertexAttribArray(location);
+                this._gl.vertexAttribPointer(location, dimension, this._gl.FLOAT, false, 0, 0);
+            }
 
-        for (const [index, [x, y, z]] of Object.entries(pos)) {
-            // ２つ目以降のオブジェクトを描画する際には行列を初期化
-            if (Number(index) > 0) this._matrix.raw.identity(this._matrix.model);
-
-            // モデルを移動させるためのモデル座標変換行列
-            this._matrix.raw.translate(this._matrix.model, [x, y, z], this._matrix.model);
-
-            // model 変換, view 変換, projection 変換を行う
-            this._matrix.raw.multiply(tmpMatrix, this._matrix.model, this._matrix.mvp);
-            this._gl.uniformMatrix4fv(uniLocation, false, this._matrix.mvp);
-            this._gl.drawArrays(this._gl.TRIANGLES, 0, 3);
+            const uniLocation = this._gl.getUniformLocation(this._program, 'mvpMatrix');
+            const tmpMatrix = this._matrix.raw.identity(this._matrix.raw.create());
+            this._matrix.raw.multiply(this._matrix.projection, this._matrix.view, tmpMatrix);
+    
+            for (const [index, [x, y, z]] of Object.entries(positions)) {
+                // ２つ目以降のオブジェクトを描画する際には行列を初期化
+                if (Number(index) > 0) this._matrix.raw.identity(this._matrix.model);
+                // モデルを移動させるためのモデル座標変換行列
+                this._matrix.raw.translate(this._matrix.model, [x, y, z], this._matrix.model);
+                // model 変換, view 変換, projection 変換を行う
+                this._matrix.raw.multiply(tmpMatrix, this._matrix.model, this._matrix.mvp);
+                this._gl.uniformMatrix4fv(uniLocation, false, this._matrix.mvp);
+                this._gl.drawArrays(this._gl.TRIANGLES, 0, 3);
+            }
         }
     }
 
