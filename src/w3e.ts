@@ -158,8 +158,63 @@ class W3E {
         this._polygon.push({ props, positions, rotate });
     }
 
+    public create_plane(x: number, y: number, z: number, size: number) {
+      this.create_polygon(
+          [{
+              attribute: 'position',
+              dimension: 3, // (X,Y,Z)
+              vertex: [
+                x - size / 2, y - size / 2, z,
+                x + size / 2, y - size / 2, z,
+                x + size / 2, y + size / 2, z,
+              ],
+          },
+          {
+              attribute: 'color',
+              dimension: 4, // (R,G,B,A)
+              vertex: [
+                1.0, 1.0, 1.0, 1.0,
+                1.0, 1.0, 1.0, 1.0,
+                1.0, 1.0, 1.0, 1.0,
+                1.0, 1.0, 1.0, 1.0,
+              ],
+          }],
+          {
+              positions: [
+                  [0.0, 0.0, 0.0],
+              ],
+          }
+      );
+      this.create_polygon(
+          [{
+              attribute: 'position',
+              dimension: 3, // (X,Y,Z)
+              vertex: [
+                x + size / 2, y + size / 2, z,
+                x - size / 2, y + size / 2, z,
+                x - size / 2, y - size / 2, z,
+              ],
+          },
+          {
+              attribute: 'color',
+              dimension: 4, // (R,G,B,A)
+              vertex: [
+                1.0, 1.0, 1.0, 1.0,
+                1.0, 1.0, 1.0, 1.0,
+                1.0, 1.0, 1.0, 1.0,
+                1.0, 1.0, 1.0, 1.0,
+              ],
+          }],
+          {
+              positions: [
+                  [0.0, 0.0, 0.0],
+              ],
+          }
+      );
+    }
+
     // トーラスを作成する関数
-    public create_torus(row, column, irad, orad) {
+    public create_torus(row: number, column: number, irad: number, orad: number) {
         const [pos, nor, col, idx] = [[], [], [], []];
 
         for (let i = 0; i <= row; i++) {
@@ -256,7 +311,7 @@ class W3E {
         this._gl.bindBuffer(this._gl.ELEMENT_ARRAY_BUFFER, ibo);
 
         // オブジェクトを実際に追加するのは pipeline 内部で行う
-        for (const { props, positions, rotate} of this._polygon) {
+        for (const { props, positions, rotate } of this._polygon) {
             for (const { attribute, vertex, dimension } of props) {
                 const location = this._gl.getAttribLocation(this._program, attribute);
                 const vbo = this._create_vbo(vertex);
